@@ -38,9 +38,6 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-// ✅ Preflight global (NO uses '*')
-app.options(/.*/, cors(corsOptions));
-
 app.use(express.json());
 
 app.disable('etag');
