@@ -22,32 +22,24 @@ const app = express();
 // ✅ CORS dinámico por variable de entorno (CSV)
 const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:4200')
   .split(',')
-  .map(s => s.trim())
+  .map((s) => s.trim())
   .filter(Boolean);
 
 const corsOptions = {
   origin: (origin, cb) => {
-    // Permite requests sin Origin (curl/postman)
     if (!origin) return cb(null, true);
     if (allowedOrigins.includes(origin)) return cb(null, true);
-    return cb(null, false); // IMPORTANTE: no lances Error aquí
+    return cb(new Error(`Not allowed by CORS: ${origin}`));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  optionsSuccessStatus: 204,
 };
 
 app.use(cors(corsOptions));
 
-// ✅ Responder SIEMPRE a preflight
-app.options('*', cors(corsOptions));
-
-// (opcional pero recomendado) si llega aquí con OPTIONS, cortamos igualmente
-app.use((req, res, next) => {
-  if (req.method === 'OPTIONS') return res.sendStatus(204);
-  next();
-});
+// ✅ Preflight global (NO uses '*')
+app.options(/.*/, cors(corsOptions));
 
 app.use(express.json());
 
