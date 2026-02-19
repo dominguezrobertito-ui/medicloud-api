@@ -16,6 +16,9 @@ const rateLimit = require('express-rate-limit');
 
 const app = express();
 
+// ✅ Azure App Service = detrás de proxy (X-Forwarded-For)
+app.set('trust proxy', 1);
+
 /* =========================
    CORS + JSON + Cache
    ========================= */
