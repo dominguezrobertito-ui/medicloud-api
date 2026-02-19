@@ -95,6 +95,11 @@ const pool = mysql.createPool({
   database: DB_NAME,
   waitForConnections: true,
   connectionLimit: 10,
+
+  // ✅ Azure MySQL suele requerir SSL
+  ssl: String(process.env.DB_SSL || 'true') === 'true'
+    ? { rejectUnauthorized: true }
+    : undefined,
 });
 
 // SMTP transporter (si se proporcionan credenciales)
