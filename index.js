@@ -13,11 +13,35 @@ const crypto = require('crypto');
 
 const nodemailer = require('nodemailer');
 const rateLimit = require('express-rate-limit');
+const helmet = require('helmet');
 
 const app = express();
 
-// ✅ Azure App Service = detrás de proxy (X-Forwarded-For)
+// Azure App Service va detrás de proxy
 app.set('trust proxy', 1);
+
+// Quita header de Express
+app.disable('x-powered-by');
+
+// Cabeceras de seguridad
+app.use(
+  helmet({
+    // CSP mínima "segura" para una API (no rompe JSON)
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'none'"],
+        baseUri: ["'none'"],
+        frameAncestors: ["'none'"], // anti-clickjacking vía CSP
+        formAction: ["'none'"],
+      },
+    },
+    // Si sirves PDFs/archivos, esto a veces molesta; lo desactivamos:
+    crossOriginEmbedderPolicy: false,
+  })
+);
+
+// Anti-clickjacking "clásico" (ZAP lo suele exigir)
+app.use(helmet.frameguard({ action: 'deny' }));
 
 /* =========================
    CORS + JSON + Cache
@@ -39,7 +63,15 @@ const corsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization'],
 };
 
+app.options(/.*/, cors(corsOptions));
 app.use(cors(corsOptions));
+
+app.use((err, _req, res, next) => {
+  if (err && String(err.message || '').startsWith('Not allowed by CORS')) {
+    return res.status(403).json({ error: 'CORS blocked' });
+  }
+  next(err);
+});
 
 app.use(express.json());
 
