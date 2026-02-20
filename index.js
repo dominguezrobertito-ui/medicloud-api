@@ -66,6 +66,13 @@ const corsOptions = {
 app.options(/.*/, cors(corsOptions));
 app.use(cors(corsOptions));
 
+app.use((err, _req, res, next) => {
+  if (err && String(err.message || '').startsWith('Not allowed by CORS')) {
+    return res.status(403).json({ error: 'CORS blocked' });
+  }
+  next(err);
+});
+
 app.use(express.json());
 
 app.disable('etag');
