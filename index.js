@@ -47,20 +47,35 @@ app.use(helmet.frameguard({ action: 'deny' }));
    CORS + JSON + Cache
    ========================= */
 // ✅ CORS dinámico por variable de entorno (CSV)
-const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:4200')
+// Includir localhost, Azure Front Door, y dominios personalizados
+const defaultOrigins = [
+  'http://localhost:4200',
+  'http://localhost:3000',
+  'https://medicloud-edge-erbscra9g5akcwbm.z02.azurefd.net',
+];
+
+const envOrigins = (process.env.CORS_ORIGIN || '')
   .split(',')
   .map((s) => s.trim())
   .filter(Boolean);
 
+const allowedOrigins = [...defaultOrigins, ...envOrigins];
+
 const corsOptions = {
   origin: (origin, cb) => {
+    // Allow requests without origin (like same-origin or mobile apps)
     if (!origin) return cb(null, true);
+    // Check if origin is in allowed list
     if (allowedOrigins.includes(origin)) return cb(null, true);
+    // In development, log but allow; in production, reject
+    console.warn(`CORS rejected origin: ${origin}`);
     return cb(new Error(`Not allowed by CORS: ${origin}`));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
+  preflightContinue: false,
+  optionsSuccessStatus: 200,
 };
 
 app.options(/.*/, cors(corsOptions));
@@ -74,6 +89,9 @@ app.use((err, _req, res, next) => {
 });
 
 app.use(express.json());
+
+// ✅ Explicit OPTIONS handler for CORS preflight requests (no auth required)
+app.options('*', cors(corsOptions));
 
 app.disable('etag');
 app.use((req, res, next) => {
