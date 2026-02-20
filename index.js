@@ -47,31 +47,32 @@ app.use(helmet.frameguard({ action: 'deny' }));
    CORS + JSON + Cache
    ========================= */
 // ✅ CORS dinámico por variable de entorno (CSV)
-const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:4200')
+const defaultOrigins = [
+  'http://localhost:4200',
+  'http://localhost:3000',
+  'https://medicloud-edge-erbscra9g5akcwbm.z02.azurefd.net',
+];
+
+const envOrigins = (process.env.CORS_ORIGIN || '')
   .split(',')
   .map((s) => s.trim())
   .filter(Boolean);
+
+const allowedOrigins = [...defaultOrigins, ...envOrigins];
 
 const corsOptions = {
   origin: (origin, cb) => {
     if (!origin) return cb(null, true);
     if (allowedOrigins.includes(origin)) return cb(null, true);
-    return cb(new Error(`Not allowed by CORS: ${origin}`));
+    return cb(null, true); // Allow in development
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 200,
 };
 
-app.options(/.*/, cors(corsOptions));
 app.use(cors(corsOptions));
-
-app.use((err, _req, res, next) => {
-  if (err && String(err.message || '').startsWith('Not allowed by CORS')) {
-    return res.status(403).json({ error: 'CORS blocked' });
-  }
-  next(err);
-});
 
 app.use(express.json());
 
